@@ -1,0 +1,13 @@
+{
+  "name": "Vinterføre",
+  "short_name": "Vinterføre",
+  "description": "Norske veiforhold om vinteren",
+  "start_url": "/vinterfoere/",
+  "display": "standalone",
+  "background_color": "#060a10",
+  "theme_color": "#060a10",
+  "orientation": "any",
+  "icons": [
+    { "src": "icon.png", "sizes": "1000x1000", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
