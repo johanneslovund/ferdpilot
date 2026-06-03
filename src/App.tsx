@@ -150,7 +150,7 @@ export default function App() {
     <>
       <SplashScreen onReveal={handleSplashReveal} />
 
-      <SearchPanel onRoute={handleRoute} onClear={handleClear} onGpsRequest={handleGpsRequest} />
+      {!navigating && <SearchPanel onRoute={handleRoute} onClear={handleClear} onGpsRequest={handleGpsRequest} />}
 
       {routeResult && routeAnalysis && !navigating && (
         <RouteReport
@@ -160,7 +160,7 @@ export default function App() {
           routeStartTime={routeStartTime}
           onNavigate={() => {
             setNavigating(true);
-            // Zoom to user position when navigation starts
+            handleClear();            // reset route report + minimise search
             const pos = gpsRef.current;
             if (pos) setFlyTarget({ lat: pos[0], lon: pos[1], zoom: 16, duration: 1 });
           }}
