@@ -24,9 +24,12 @@ export function RouteLayer({ coordinates, alternates, onSelectAlt }: RouteLayerP
       {/* Active route shadow */}
       <Polyline positions={coordinates}
         pathOptions={{ color: '#000', weight: 10, opacity: 0.28 }} />
-      {/* Active route — Google Maps blue */}
+      {/* Active route — FerdPilot brand blue matching logo */}
       <Polyline positions={coordinates}
-        pathOptions={{ color: '#4285F4', weight: 6, opacity: 0.95 }} />
+        pathOptions={{ color: '#1a6bb5', weight: 6, opacity: 0.95 }} />
+      {/* Inner highlight */}
+      <Polyline positions={coordinates}
+        pathOptions={{ color: '#89cff0', weight: 2, opacity: 0.55 }} />
     </>
   );
 }

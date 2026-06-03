@@ -56,14 +56,15 @@ function PinMarker({ lat, lon }: { lat: number; lon: number }) {
   useEffect(() => {
     const icon = L.divIcon({
       className: '',
-      html: `<svg width="28" height="38" viewBox="0 0 28 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M14 0C6.268 0 0 6.268 0 14c0 9.333 14 24 14 24s14-14.667 14-24C28 6.268 21.732 0 14 0z"
-          fill="#E53935" stroke="white" stroke-width="2"/>
-        <circle cx="14" cy="14" r="5" fill="white"/>
+      // viewBox has 4px padding all round so path stroke is never clipped
+      html: `<svg width="20" height="28" viewBox="-4 -4 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 0C4.477 0 0 4.477 0 10c0 6.667 10 17 10 17s10-10.333 10-17C20 4.477 15.523 0 10 0z"
+          fill="#E53935" stroke="white" stroke-width="1.5"/>
+        <circle cx="10" cy="10" r="3.5" fill="white"/>
       </svg>`,
-      iconSize:    [28, 38],
-      iconAnchor:  [14, 38],
-      popupAnchor: [0, -38],
+      iconSize:    [20, 28],
+      iconAnchor:  [10, 28],
+      popupAnchor: [0, -28],
     });
     const marker = L.marker([lat, lon], { icon, zIndexOffset: 1000 }).addTo(map);
     ref.current = marker;

@@ -20,7 +20,6 @@ function renderAiText(text: string) {
 }
 
 interface Props {
-  onNavigate?: () => void;
   lat: number; lon: number
   locationName: string
   weather: GridWeather | null
@@ -28,14 +27,18 @@ interface Props {
   aiText: string | null
   aiError: string | null
   aiLoading: boolean
+  onNavigate?: () => void
   onClose: () => void
 }
 
-export function LocationPanel({ lat, lon, locationName, weather, traffic, aiText, aiError, aiLoading, onClose, onNavigate }: Props) {
-  const level = weather ? riskLevel(weather.riskScore) : null
+export function LocationPanel({
+  lat, lon, locationName, weather, traffic,
+  aiText, aiError, aiLoading, onNavigate, onClose
+}: Props) {
+  const level    = weather ? riskLevel(weather.riskScore) : null
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // Swipe-down to dismiss
+  // Swipe up OR down to dismiss
   useEffect(() => {
     const el = panelRef.current
     if (!el) return
@@ -46,8 +49,9 @@ export function LocationPanel({ lat, lon, locationName, weather, traffic, aiText
     }
     const onTouchEnd = (e: TouchEvent) => {
       const dy = e.changedTouches[0].clientY - startY
-      // Only dismiss if swiping down from top of scroll
-      if (dy > 60 && startScrollTop <= 0) onClose()
+      const atTop = startScrollTop <= 0
+      const atBottom = el.scrollTop >= el.scrollHeight - el.clientHeight - 4
+      if ((dy > 60 && atTop) || (dy < -60 && atBottom)) onClose()
     }
     el.addEventListener('touchstart', onTouchStart, { passive: true })
     el.addEventListener('touchend',   onTouchEnd,   { passive: true })
@@ -62,12 +66,8 @@ export function LocationPanel({ lat, lon, locationName, weather, traffic, aiText
       {/* Drag handle */}
       <div className="loc-panel__handle" />
 
-      {/* Header */}
-      <div className="loc-panel__header">
-        <span className="loc-panel__name">{locationName}</span>
-        <span className="loc-panel__coords">{lat.toFixed(3)}°N {lon.toFixed(3)}°Ø</span>
-        <button className="loc-panel__close" onClick={onClose}>×</button>
-      </div>
+      {/* Location name only — no coordinates */}
+      <div className="loc-panel__title">{locationName}</div>
 
       {/* Weather */}
       {weather && level && (
@@ -111,19 +111,16 @@ export function LocationPanel({ lat, lon, locationName, weather, traffic, aiText
           <span className="loc-panel__ai-label">AI-analyse</span>
           {aiLoading && <div className="loc-panel__ai-dot" />}
         </div>
-
         {aiLoading && (
           <div className="loc-panel__ai-skeleton">
-            {[90, 75, 85, 60, 80].map((w, i) => (
+            {[90,75,85,60].map((w,i) => (
               <div key={i} className="loc-panel__ai-skeleton-line" style={{ width: `${w}%` }} />
             ))}
           </div>
         )}
-
         {aiError && !aiLoading && (
           <div className="loc-panel__ai-error">Kunne ikke hente analyse: {aiError}</div>
         )}
-
         {aiText && !aiLoading && (
           <>
             <div className="loc-panel__ai-text">{renderAiText(aiText)}</div>
@@ -131,6 +128,11 @@ export function LocationPanel({ lat, lon, locationName, weather, traffic, aiText
           </>
         )}
       </div>
+
+      {/* Large centered close button */}
+      <button className="loc-panel__close-btn" onClick={onClose} aria-label="Lukk">
+        ×
+      </button>
     </div>
   )
 }

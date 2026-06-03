@@ -38,10 +38,10 @@ export default function App() {
     () => (localStorage.getItem('vf-mapStyle') as MapStyle) ?? 'light'
   );
 
-  // Apply data-mode to root so CSS variables respond to map style
   useEffect(() => {
     document.documentElement.setAttribute('data-mode', mapStyle);
   }, [mapStyle]);
+
   const [navInfo, setNavInfo] = useState<import('./components/Navigation/NavigationMapController').NavInfo | null>(null);
   const [flyTarget, setFlyTarget] = useState<{
     lat: number; lon: number; zoom?: number; duration?: number
@@ -51,7 +51,10 @@ export default function App() {
   const [routeAnalysisText, setRouteAnalysisText] = useState<string | undefined>(undefined);
   const [ferryAnalyses, setFerryAnalyses]         = useState<FerryAnalysis[]>([]);
   const [routeStartTime, setRouteStartTime]       = useState<Date | undefined>(undefined);
-  const [navigating,     setNavigating]           = useState(false);
+  const [navigating, setNavigating] = useState(false);
+  useEffect(() => {
+    document.documentElement.classList.toggle('is-navigating', navigating);
+  }, [navigating]);
   const [routeFrom, setRouteFrom] = useState<[number,number] | null>(null);
   const [routeTo,   setRouteTo]   = useState<[number,number] | null>(null);
   const [routeToName, setRouteToName] = useState('');
@@ -212,7 +215,11 @@ export default function App() {
         navSteps={navigating && routeResult ? routeResult.steps : undefined}
         navFerries={navigating ? ferryAnalyses : undefined}
         routeStartTime={routeStartTime}
-        onStopNavigation={() => setNavigating(false)}
+        onStopNavigation={() => {
+          setNavigating(false);
+          handleClear();                            // clear route → search pill resets
+          setToggles(t => ({ ...t, traffic: false })); // turn traffic off again
+        }}
       />
     </>
   );

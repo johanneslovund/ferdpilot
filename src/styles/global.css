@@ -65,6 +65,14 @@ input, textarea { -webkit-user-select: auto; user-select: auto; }
   top: calc(var(--safe-top, 16px) + 62px) !important;
 }
 
+/* During navigation: move to bottom-right so they don't overlap the nav overlay */
+.is-navigating .leaflet-top.leaflet-left {
+  top:    auto !important;
+  bottom: calc(var(--safe-bottom, 0px) + 108px) !important;
+  left:   auto !important;
+  right:  14px !important;
+}
+
 .leaflet-control-zoom { border: none !important; box-shadow: none !important; }
 .leaflet-control-zoom a {
   background: var(--glass-bg) !important;
