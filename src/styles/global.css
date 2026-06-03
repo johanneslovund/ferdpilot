@@ -1,5 +1,5 @@
 :root {
-  --accent-ice: #2b8fd0;
+  --accent-ice: #89cff0;
   --accent-danger: #f44336;
   --radius: 10px;
 
@@ -7,7 +7,7 @@
   --safe-top: max(16px, calc(env(safe-area-inset-top) + 8px));
   --safe-bottom: max(0px, env(safe-area-inset-bottom));
 
-  /* Dark mode defaults */
+  /* UI glass — always dark regardless of map tile style */
   --text-primary:  #e6edf3;
   --text-muted:    rgba(255,255,255,0.42);
   --border:        rgba(255,255,255,0.1);
@@ -16,26 +16,15 @@
   --glass-blur:    blur(20px);
   --glass-border:  rgba(255,255,255,0.10);
   --glass-shadow:  0 8px 32px rgba(0,0,0,0.45);
-  --glass-overlay: rgba(8,11,20,0.88);
+  --glass-overlay: rgba(8,11,20,0.92);
   --label-muted:   rgba(255,255,255,0.28);
   --app-bg:        #060a10;
   --sep:           rgba(255,255,255,0.06);
 }
 
-/* ── Light mode overrides ────────────────────────────── */
-[data-mode="light"] {
-  --text-primary:  #1a1f2e;
-  --text-muted:    rgba(0,0,0,0.50);
-  --border:        rgba(0,0,0,0.10);
-  --glass-bg:      rgba(255,255,255,0.88);
-  --glass-bg-sub:  rgba(0,0,0,0.04);
-  --glass-border:  rgba(0,0,0,0.10);
-  --glass-shadow:  0 8px 32px rgba(0,0,0,0.14);
-  --glass-overlay: rgba(255,255,255,0.95);
-  --label-muted:   rgba(0,0,0,0.38);
-  --app-bg:        #f0f2f5;
-  --sep:           rgba(0,0,0,0.07);
-}
+/* Map tile style only affects the Leaflet background — not UI panels */
+[data-mode="light"]     { --app-bg: #d8dde4; }
+[data-mode="satellite"] { --app-bg: #1a1f2e; }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
