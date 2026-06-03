@@ -73,6 +73,22 @@ export function NavigationMapController({ steps, onUpdate, onArrive }: Props) {
       ).forEach(el => { el.style.transform = '' })
     }
 
+    // Pause auto-pan while user manually interacts with the map
+    let userInteracting = false;
+    let interactTimeout: ReturnType<typeof setTimeout> | null = null;
+    const onDragStart = () => {
+      userInteracting = true;
+      if (interactTimeout) clearTimeout(interactTimeout);
+    };
+    const onDragEnd = () => {
+      if (interactTimeout) clearTimeout(interactTimeout);
+      interactTimeout = setTimeout(() => { userInteracting = false; }, 6000);
+    };
+    map.on('dragstart', onDragStart);
+    map.on('dragend',   onDragEnd);
+    map.on('zoomstart', onDragStart);
+    map.on('zoomend',   onDragEnd);
+
     watchId.current = navigator.geolocation.watchPosition(
       pos => {
         const { latitude: lat, longitude: lon, speed, heading: gpsHeading } = pos.coords
@@ -93,8 +109,10 @@ export function NavigationMapController({ steps, onUpdate, onArrive }: Props) {
 
         onUpdate({ stepIdx, remainDist: remDist, remainMin, eta, bearing })
 
-        // Keep user centred
-        map.panTo([lat, lon], { animate: true, duration: 0.4, noMoveStart: true })
+        // Keep user centred — only when they're not manually exploring
+        if (!userInteracting) {
+          map.panTo([lat, lon], { animate: true, duration: 0.4, noMoveStart: true })
+        }
 
         // Auto-end
         if (stepIdx >= steps.length - 2 && remDist < 50) {
@@ -108,6 +126,11 @@ export function NavigationMapController({ steps, onUpdate, onArrive }: Props) {
 
     return () => {
       if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current)
+      map.off('dragstart', onDragStart)
+      map.off('dragend',   onDragEnd)
+      map.off('zoomstart', onDragStart)
+      map.off('zoomend',   onDragEnd)
+      if (interactTimeout) clearTimeout(interactTimeout)
       resetRotation()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

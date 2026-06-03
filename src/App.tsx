@@ -182,6 +182,15 @@ export default function App() {
         <LocationPanel
           {...panel} aiLoading={panel.aiLoading}
           onClose={() => { setPanel(null); setPinLocation(null); }}
+          onNavigate={async () => {
+            const gps = gpsRef.current ?? await handleGpsRequest();
+            if (!gps) return;
+            setPanel(null);
+            await handleRoute(gps, [panel.lat, panel.lon], 'Min posisjon', panel.locationName);
+            setNavigating(true);
+            setToggles(t => ({ ...t, traffic: true }));
+            setFlyTarget({ lat: gps[0], lon: gps[1], zoom: 16, duration: 1 });
+          }}
         />
       )}
 

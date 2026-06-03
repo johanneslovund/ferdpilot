@@ -47,7 +47,7 @@ export function NavigationOverlay({ steps, navInfo, ferryAnalyses, routeStartTim
         <button className="nav-instruction__stop" onClick={onStop}>Stopp</button>
       </div>
 
-      {/* Ferry thin bar — only first ferry, minimal clutter */}
+      {/* Ferry progress line — thin, colour-coded by margin */}
       {ferryAnalyses && ferryAnalyses.length > 0 && (() => {
         const fa  = ferryAnalyses[ferryIdx];
         const now = new Date();
@@ -64,7 +64,6 @@ export function NavigationOverlay({ steps, navInfo, ferryAnalyses, routeStartTim
         if (!target) return null;
 
         const minEarly   = (target.time.getTime() - liveEta.getTime()) / 60000;
-        const isGood     = minEarly >= 0;
         const canMiss    = minEarly < 0 && minEarly > -25;
         const canSkip    = upcoming.length > skip + 1;
         const LIMIT      = fa.speedLimitKmh ?? 80;
@@ -80,47 +79,63 @@ export function NavigationOverlay({ steps, navInfo, ferryAnalyses, routeStartTim
           }
         }
 
-        // Auto-skip if excess > 15 km/h above limit — user can't realistically make it
+        // Auto-skip if excess > 15 km/h above limit
+        let autoSkipped = false;
         if (canMiss && (excessSpeed === null || excessSpeed > 15) && canSkip && skip === 0) {
-          const autoSkipFerries = [...ferrySkips];
-          autoSkipFerries[ferryIdx] = 1;
-          // Use next ferry as the display target
-          target = upcoming[1];
+          target       = upcoming[1];
+          autoSkipped  = true;
           const newMin = (target.time.getTime() - liveEta.getTime()) / 60000;
+          // Override minEarly to reflect next ferry
+          const nextMin = Math.round(newMin);
+
+          // Progress fill: map margin (-20…+20) to 0–100%
+          const fillPct = Math.max(5, Math.min(95, 50 + (nextMin / 20) * 45));
+          const fillColor = nextMin >= 10 ? '#4caf50' : nextMin >= 3 ? '#8bc34a' : '#90a4ae';
+
           return (
-            <div className="nav-ferry-bar nav-ferry-bar--next">
-              <span className="nav-ferry-bar__name">⛴ {fa.ferry.name}</span>
-              <span className="nav-ferry-bar__dep">{fmtClock(target.time)}</span>
-              <span className="nav-ferry-bar__status">Neste (+{Math.round(newMin)} min margin)</span>
-              <button className="nav-ferry-bar__btn"
+            <div className="nav-ferry-line">
+              <div className="nav-ferry-line__labels">
+                <span>⛴ {fa.ferry.name} · {fmtClock(target.time)}</span>
+                <span style={{ color: fillColor, fontWeight: 700 }}>+{nextMin} min (neste)</span>
+              </div>
+              <div className="nav-ferry-line__track">
+                <div className="nav-ferry-line__fill" style={{ width: `${fillPct}%`, background: fillColor }} />
+                <div className="nav-ferry-line__marker" style={{ left: '50%' }} />
+              </div>
+              <button className="nav-ferry-line__skip"
                 onClick={() => { const n=[...ferrySkips]; n[ferryIdx]=0; setFerrySkips(n); }}>
-                Forrige
+                ← Tidligere ferje
               </button>
             </div>
           );
         }
 
+        // Normal ferry progress line
+        const margin  = Math.round(minEarly);
+        // Map margin (-20…+20 min) → fill 0–100%
+        const fillPct = Math.max(3, Math.min(97, 50 + (minEarly / 20) * 47));
+        const fillColor = minEarly >= 8 ? '#4caf50'
+          : minEarly >= 2  ? '#8bc34a'
+          : minEarly >= -1 ? '#78909c'
+          : minEarly >= -6 ? '#ef9a9a'
+          : '#f44336';
+
         return (
-          <div className={`nav-ferry-bar${isGood ? ' nav-ferry-bar--ok' : canMiss ? ' nav-ferry-bar--warn' : ''}`}>
-            <span className="nav-ferry-bar__name">⛴ {fa.ferry.name}</span>
-            <span className="nav-ferry-bar__dep">{fmtClock(target.time)}</span>
-            <span className="nav-ferry-bar__status">
-              {isGood
-                ? `+${Math.round(minEarly)} min`
-                : canMiss && excessSpeed
-                  ? `+${excessSpeed} km/t over grensen`
-                  : ''}
-            </span>
-            {canSkip && !isGood && (
-              <button className="nav-ferry-bar__btn"
+          <div className="nav-ferry-line">
+            <div className="nav-ferry-line__labels">
+              <span>⛴ {fa.ferry.name} · {fmtClock(target.time)}</span>
+              <span style={{ color: fillColor, fontWeight: 700 }}>
+                {margin >= 0 ? `+${margin} min` : canMiss && excessSpeed ? `+${excessSpeed} km/t over grensen` : `${margin} min`}
+              </span>
+            </div>
+            <div className="nav-ferry-line__track">
+              <div className="nav-ferry-line__fill" style={{ width: `${fillPct}%`, background: fillColor }} />
+              <div className="nav-ferry-line__marker" style={{ left: '50%' }} />
+            </div>
+            {canSkip && canMiss && !autoSkipped && (
+              <button className="nav-ferry-line__skip"
                 onClick={() => { const n=[...ferrySkips]; n[ferryIdx]=(n[ferryIdx]??0)+1; setFerrySkips(n); }}>
-                Neste ferje
-              </button>
-            )}
-            {skip > 0 && (
-              <button className="nav-ferry-bar__btn nav-ferry-bar__btn--reset"
-                onClick={() => { const n=[...ferrySkips]; n[ferryIdx]=0; setFerrySkips(n); }}>
-                ← Tilbake
+                Ta neste ferje ({fmtClock(upcoming[skip + 1].time)})
               </button>
             )}
           </div>

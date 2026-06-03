@@ -20,6 +20,7 @@ function renderAiText(text: string) {
 }
 
 interface Props {
+  onNavigate?: () => void;
   lat: number; lon: number
   locationName: string
   weather: GridWeather | null
@@ -30,7 +31,7 @@ interface Props {
   onClose: () => void
 }
 
-export function LocationPanel({ lat, lon, locationName, weather, traffic, aiText, aiError, aiLoading, onClose }: Props) {
+export function LocationPanel({ lat, lon, locationName, weather, traffic, aiText, aiError, aiLoading, onClose, onNavigate }: Props) {
   const level = weather ? riskLevel(weather.riskScore) : null
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -126,7 +127,7 @@ export function LocationPanel({ lat, lon, locationName, weather, traffic, aiText
         {aiText && !aiLoading && (
           <>
             <div className="loc-panel__ai-text">{renderAiText(aiText)}</div>
-            <NavLinks toCoords={[lat, lon]} toName={locationName} />
+            <NavLinks toCoords={[lat, lon]} toName={locationName} onNavigate={onNavigate} />
           </>
         )}
       </div>

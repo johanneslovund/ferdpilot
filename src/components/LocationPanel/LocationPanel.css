@@ -90,7 +90,7 @@
 .loc-panel__traffic-speed { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.6); white-space: nowrap; flex-shrink: 0; }
 
 /* AI Analysis */
-.loc-panel__ai { padding: 10px 14px 12px; }
+.loc-panel__ai { padding: 12px 14px 16px; }
 .loc-panel__ai-header { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
 .loc-panel__ai-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: rgba(255,255,255,0.28); }
 .loc-panel__ai-dot { width: 6px; height: 6px; border-radius: 50%; background: #89cff0; animation: pulse 0.8s ease infinite; }
