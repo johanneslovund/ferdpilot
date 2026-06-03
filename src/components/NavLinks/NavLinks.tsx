@@ -1,12 +1,13 @@
 import './NavLinks.css';
 
 export interface NavLinksProps {
-  fromCoords?: [number, number] | null;
-  toCoords:    [number, number];
-  toName?:     string;
+  fromCoords?:  [number, number] | null;
+  toCoords:     [number, number];
+  toName?:      string;
+  onNavigate?:  () => void;  // in-app navigation callback
 }
 
-export function NavLinks({ fromCoords, toCoords, toName }: NavLinksProps) {
+export function NavLinks({ fromCoords, toCoords, toName, onNavigate }: NavLinksProps) {
   const [tLat, tLon] = toCoords;
   const name = encodeURIComponent(toName || 'Destinasjon');
 
@@ -31,16 +32,15 @@ export function NavLinks({ fromCoords, toCoords, toName }: NavLinksProps) {
   return (
     <div className="nav-links">
       {links.map(({ label, url }) => (
-        <a
-          key={label}
-          className="nav-link"
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a key={label} className="nav-link" href={url} target="_blank" rel="noopener noreferrer">
           {label}
         </a>
       ))}
+      {onNavigate && (
+        <button className="nav-link nav-link--primary" onClick={onNavigate}>
+          Naviger
+        </button>
+      )}
     </div>
   );
 }

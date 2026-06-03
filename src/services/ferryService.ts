@@ -87,11 +87,20 @@ export async function analyseFerries(
 
     // Fetch departures from 90 min before ETA (to show up to 2 earlier) through 8h after
     const fetchFrom = new Date(etaToFerry.getTime() - 90 * 60 * 1000);
-    const departures = await getDepartures(stopInfo.id, fetchFrom);
-    if (!departures.length) continue;
+    const allDeps = await getDepartures(stopInfo.id, fetchFrom);
+    if (!allDeps.length) continue;
+
+    // Filter by direction — keep only departures toward the route's destination
+    const destName = ferry.destinationName.toLowerCase();
+    const departures = destName
+      ? allDeps.filter(d => d.destination.toLowerCase().includes(destName.split(' ')[0]))
+      : allDeps;
+
+    // Fall back to all if filtering removed everything
+    const finalDeps = departures.length ? departures : allDeps;
 
     // Next ferry the user can realistically catch (departing after ETA - 2 min grace)
-    const nextFerry = departures.find(d => d.time >= new Date(etaToFerry.getTime() - 2 * 60 * 1000)) ?? null;
+    const nextFerry = finalDeps.find(d => d.time >= new Date(etaToFerry.getTime() - 2 * 60 * 1000)) ?? null;
 
     let minutesEarly: number | null = null;
     let requiredSpeedKmh: number | null = null;
@@ -117,7 +126,7 @@ export async function analyseFerries(
       ferry,
       stopName:        stopInfo.name,
       etaToFerry,
-      departures:      departures.slice(0, 5),
+      departures:      finalDeps,   // full list — RouteReport slices 2+3
       nextFerry,
       minutesEarly,
       requiredSpeedKmh,

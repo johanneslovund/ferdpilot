@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { RouteAnalysis } from '../../services/routeAnalysis';
 import { RISK_COLORS } from '../../types/weather';
 import { RouteResult } from '../../services/routeApi';
@@ -23,9 +24,11 @@ interface Props {
   route: RouteResult;
   routeAnalysisText?: string;
   ferryAnalyses?: FerryAnalysis[];
+  routeStartTime?: Date;
   fromCoords?: [number, number] | null;
   toCoords?: [number, number] | null;
   toName?: string;
+  onNavigate?: () => void;
   onClose: () => void;
 }
 
@@ -33,7 +36,16 @@ function fmtTime(d: Date) {
   return d.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
 }
 
-export function RouteReport({ analysis, route, routeAnalysisText, ferryAnalyses, fromCoords, toCoords, toName, onClose }: Props) {
+export function RouteReport({
+  analysis, route, routeAnalysisText, ferryAnalyses,
+  routeStartTime, fromCoords, toCoords, toName, onNavigate, onClose
+}: Props) {
+  // Live clock for dynamic ferry calculations (updates every 30 s)
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
+  }, []);
   const badgeColor = RISK_COLORS[analysis.overallLevel];
 
   return (
@@ -106,10 +118,36 @@ export function RouteReport({ analysis, route, routeAnalysisText, ferryAnalyses,
           )}
         </div>
 
-        {/* Ferry section */}
+        {/* Ferry section — live recalculation every 30 s */}
         {ferryAnalyses && ferryAnalyses.length > 0 && ferryAnalyses.map((fa, i) => {
-          const isClose  = fa.minutesEarly !== null && fa.minutesEarly > -20 && fa.minutesEarly < 10;
-          const willMiss = fa.minutesEarly !== null && fa.minutesEarly < 0;
+          // Recalculate ETA dynamically based on elapsed time since route start
+          const elapsedMin    = routeStartTime
+            ? (now.getTime() - routeStartTime.getTime()) / 60000
+            : 0;
+          const remainDriveMin = Math.max(0, fa.ferry.driveTimeToFerryMin - elapsedMin);
+          const liveEta        = new Date(now.getTime() + remainDriveMin * 60 * 1000);
+
+          // Find live next ferry
+          const liveNext    = fa.departures.find(d => d.time >= new Date(liveEta.getTime() - 2 * 60 * 1000)) ?? null;
+          const liveMinEarly = liveNext ? (liveNext.time.getTime() - liveEta.getTime()) / 60000 : null;
+
+          const isClose  = liveMinEarly !== null && liveMinEarly > -20 && liveMinEarly < 10;
+          const willMiss = liveMinEarly !== null && liveMinEarly < 0;
+
+          // Live speed calculation
+          let liveRequiredSpeed: number | null = null;
+          if (willMiss && liveNext && liveMinEarly !== null && liveMinEarly > -20) {
+            const hoursAvail = (liveNext.time.getTime() - now.getTime()) / 3600000;
+            if (hoursAvail > 0) {
+              const req = fa.ferry.driveDistanceToFerryKm / hoursAvail;
+              if (req <= fa.speedLimitKmh + 40) liveRequiredSpeed = Math.round(req);
+            }
+          }
+
+          // 2 earlier + 3 upcoming = 5 departures
+          const earlier  = fa.departures.filter(d => d.time < liveEta).slice(-2);
+          const upcoming = fa.departures.filter(d => d.time >= liveEta).slice(0, 3);
+          const toShow   = [...earlier, ...upcoming];
 
           return (
             <div key={i} className="route-report__section" style={{ gridColumn: '1 / -1', borderColor: willMiss ? 'rgba(244,67,54,0.3)' : 'rgba(255,255,255,0.07)' }}>
@@ -120,64 +158,53 @@ export function RouteReport({ analysis, route, routeAnalysisText, ferryAnalyses,
               {/* ETA row */}
               <div className="route-report__ferry-eta">
                 <span>Ankomst terminal:</span>
-                <strong>{fmtTime(fa.etaToFerry)}</strong>
+                <strong>{fmtTime(liveEta)}</strong>
               </div>
 
-              {/* Speed warning */}
-              {isClose && fa.requiredSpeedKmh && willMiss && (
+              {/* Speed warning — live */}
+              {isClose && liveRequiredSpeed && willMiss && (
                 <div className="route-report__ferry-warn">
-                  ⚠ Du går glipp av ferjen kl. {fa.nextFerry ? fmtTime(fa.nextFerry.time) : '?'}.
-                  Du må kjøre <strong>{fa.requiredSpeedKmh} km/t</strong> snitt
-                  ({fa.requiredSpeedKmh - fa.speedLimitKmh > 0 ? `+${fa.requiredSpeedKmh - fa.speedLimitKmh}` : fa.requiredSpeedKmh - fa.speedLimitKmh} km/t over fartsgrensen).
+                  ⚠ Du går glipp av ferjen kl. {liveNext ? fmtTime(liveNext.time) : '?'}.
+                  Du må kjøre <strong>{liveRequiredSpeed} km/t</strong> snitt
+                  ({liveRequiredSpeed - fa.speedLimitKmh > 0 ? `+${liveRequiredSpeed - fa.speedLimitKmh}` : liveRequiredSpeed - fa.speedLimitKmh} km/t over fartsgrensen).
                 </div>
               )}
-              {isClose && !willMiss && fa.minutesEarly !== null && fa.minutesEarly < 10 && (
+              {isClose && !willMiss && liveMinEarly !== null && liveMinEarly < 10 && (
                 <div className="route-report__ferry-ok">
-                  ✓ Du rekker ferjen kl. {fa.nextFerry ? fmtTime(fa.nextFerry.time) : '?'} —{' '}
-                  du ankommer {Math.round(fa.minutesEarly)} {Math.round(fa.minutesEarly) === 1 ? 'minutt' : 'minutter'} før avgang.
+                  ✓ Du rekker ferjen kl. {liveNext ? fmtTime(liveNext.time) : '?'} —{' '}
+                  du ankommer {Math.round(liveMinEarly)} {Math.round(liveMinEarly) === 1 ? 'minutt' : 'minutter'} før avgang.
                 </div>
               )}
 
-              {/* Departure list: max 2 before ETA, then upcoming */}
-              {(() => {
-                const earlier  = fa.departures.filter(d => d.time < fa.etaToFerry).slice(-2);
-                const upcoming = fa.departures.filter(d => d.time >= fa.etaToFerry).slice(0, 4);
-                const toShow   = [...earlier, ...upcoming];
-                return (
-                  <div className="route-report__ferry-times">
-                    {earlier.length > 0 && (
-                      <div className="route-report__ferry-divider">Avganger</div>
-                    )}
-                    {toShow.map((dep, j) => {
-                      const isPast = dep.time < fa.etaToFerry;
-                      const isNext = fa.nextFerry && dep.time.getTime() === fa.nextFerry.time.getTime();
-                      const isFirst = earlier.length > 0 && j === earlier.length;
-                      return (
-                        <>
-                          {isFirst && (
-                            <div key={`divider-${j}`} className="route-report__ferry-divider route-report__ferry-divider--eta">
-                              ↓ ETA {fmtTime(fa.etaToFerry)}
-                            </div>
-                          )}
-                          <div key={j} className={[
-                            'route-report__ferry-dep',
-                            isNext ? 'route-report__ferry-dep--next' : '',
-                            isPast ? 'route-report__ferry-dep--past' : '',
-                          ].filter(Boolean).join(' ')}>
-                            <span className="route-report__ferry-time">{fmtTime(dep.time)}</span>
-                            <span className="route-report__ferry-dest">→ {dep.destination}</span>
-                            {isNext && (
-                              <span className="route-report__ferry-badge">
-                                {willMiss ? 'Neste' : 'Rekker'}
-                              </span>
-                            )}
-                          </div>
-                        </>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
+              {/* Departure list: 2 earlier + 3 upcoming = 5 total */}
+              <div className="route-report__ferry-times">
+                {earlier.length > 0 && <div className="route-report__ferry-divider">Avganger</div>}
+                {toShow.map((dep, j) => {
+                  const isPast = dep.time < liveEta;
+                  const isNext = liveNext && dep.time.getTime() === liveNext.time.getTime();
+                  const isFirst = earlier.length > 0 && j === earlier.length;
+                  return (
+                    <div key={j}>
+                      {isFirst && (
+                        <div className="route-report__ferry-divider route-report__ferry-divider--eta">
+                          ↓ ETA {fmtTime(liveEta)}
+                        </div>
+                      )}
+                      <div className={[
+                        'route-report__ferry-dep',
+                        isNext ? 'route-report__ferry-dep--next' : '',
+                        isPast ? 'route-report__ferry-dep--past' : '',
+                      ].filter(Boolean).join(' ')}>
+                        <span className="route-report__ferry-time">{fmtTime(dep.time)}</span>
+                        <span className="route-report__ferry-dest">→ {dep.destination}</span>
+                        {isNext && (
+                          <span className="route-report__ferry-badge">{willMiss ? 'Neste' : 'Rekker'}</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           );
         })}
@@ -198,7 +225,7 @@ export function RouteReport({ analysis, route, routeAnalysisText, ferryAnalyses,
               ))}
             </div>
             {toCoords && (
-              <NavLinks fromCoords={fromCoords} toCoords={toCoords} toName={toName} />
+              <NavLinks fromCoords={fromCoords} toCoords={toCoords} toName={toName} onNavigate={onNavigate} />
             )}
           </div>
         )}

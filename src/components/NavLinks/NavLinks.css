@@ -28,3 +28,16 @@
   color: #e6edf3;
   border-color: rgba(255,255,255,0.2);
 }
+
+.nav-link--primary {
+  background: rgba(137,207,240,0.14);
+  border-color: rgba(137,207,240,0.35);
+  color: #89cff0;
+  cursor: pointer;
+  font-family: inherit;
+}
+.nav-link--primary:hover {
+  background: rgba(137,207,240,0.25);
+  color: #89cff0;
+  border-color: rgba(137,207,240,0.5);
+}

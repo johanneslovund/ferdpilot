@@ -12,6 +12,8 @@ import { ElevationOverlayLayer } from './ElevationOverlayLayer';
 import { WebcamLayer } from './WebcamLayer';
 import { HazardLayer } from './HazardLayer';
 import { UserLocationLayer } from './UserLocationLayer';
+import { NavigationOverlay } from '../Navigation/NavigationOverlay';
+import { RouteStep } from '../../services/routeApi';
 import { Webcam } from '../../services/webcamService';
 import { Hazard } from '../../services/hazardService';
 import { ElevationLegend } from '../Legend/ElevationLegend';
@@ -90,10 +92,12 @@ interface MapViewProps {
   onMapClick:    (lat: number, lon: number) => void;
   webcams:       Webcam[];
   hazards:       Hazard[];
-  pinLocation:   { lat: number; lon: number } | null;
-  mapStyle:      MapStyle;
-  onMapStyle:    (s: MapStyle) => void;
-  onResetGps:    () => void;
+  pinLocation:      { lat: number; lon: number } | null;
+  mapStyle:         MapStyle;
+  onMapStyle:       (s: MapStyle) => void;
+  onResetGps:       () => void;
+  navSteps?:        RouteStep[];
+  onStopNavigation?: () => void;
 }
 
 // ── component ─────────────────────────────────────────────────────────────────
@@ -102,6 +106,7 @@ export function MapView({
   data, toggles, onToggle, flyTarget, routeResult,
   onMapClick, webcams, hazards, pinLocation,
   mapStyle, onMapStyle, onResetGps,
+  navSteps, onStopNavigation,
 }: MapViewProps) {
   const tiles = MAP_TILES[mapStyle];
 
@@ -148,8 +153,13 @@ export function MapView({
         <FlyTo target={flyTarget} />
       </MapContainer>
 
+      {/* In-app navigation overlay */}
+      {navSteps && navSteps.length > 0 && onStopNavigation && (
+        <NavigationOverlay steps={navSteps} onStop={onStopNavigation} />
+      )}
+
       {/* Map style selector — top right */}
-      <MapStyleSelector value={mapStyle} onChange={onMapStyle} />
+      {!navSteps?.length && <MapStyleSelector value={mapStyle} onChange={onMapStyle} />}
 
       {/* GPS reset button — bottom right above toggles */}
       <button className="map-reset-btn" onClick={onResetGps} title="Gå til min posisjon">

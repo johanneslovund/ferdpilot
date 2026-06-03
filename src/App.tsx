@@ -41,6 +41,8 @@ export default function App() {
   const [routeAnalysis,  setRouteAnalysis]  = useState<RouteAnalysis | null>(null);
   const [routeAnalysisText, setRouteAnalysisText] = useState<string | undefined>(undefined);
   const [ferryAnalyses, setFerryAnalyses]         = useState<FerryAnalysis[]>([]);
+  const [routeStartTime, setRouteStartTime]       = useState<Date | undefined>(undefined);
+  const [navigating,     setNavigating]           = useState(false);
   const [routeFrom, setRouteFrom] = useState<[number,number] | null>(null);
   const [routeTo,   setRouteTo]   = useState<[number,number] | null>(null);
   const [routeToName, setRouteToName] = useState('');
@@ -103,6 +105,8 @@ export default function App() {
       setRouteFrom(from); setRouteTo(to); setRouteToName(toName);
       const mid = result.coordinates[Math.floor(result.coordinates.length / 2)];
       setFlyTarget({ lat: mid[0], lon: mid[1] });
+      const now = new Date();
+      setRouteStartTime(now);
       setRouteAnalysis(analyzeRoute(result.coordinates, data));
       setRouteAnalysisText(generateRouteAnalysis(fromName, toName, data, result.coordinates));
       // Analyse ferries async — don't block route display
@@ -117,7 +121,7 @@ export default function App() {
   const handleClear = useCallback(() => {
     setRouteResult(null); setRouteAnalysis(null); setRouteAnalysisText(undefined);
     setRouteFrom(null); setRouteTo(null); setRouteToName('');
-    setFerryAnalyses([]);
+    setFerryAnalyses([]); setRouteStartTime(undefined); setNavigating(false);
   }, []);
 
   const handleMapClick = useCallback(async (lat: number, lon: number) => {
@@ -145,6 +149,8 @@ export default function App() {
           analysis={routeAnalysis} route={routeResult}
           routeAnalysisText={routeAnalysisText}
           ferryAnalyses={ferryAnalyses}
+          routeStartTime={routeStartTime}
+          onNavigate={() => { setNavigating(true); }}
           fromCoords={routeFrom} toCoords={routeTo} toName={routeToName}
           onClose={handleClear}
         />
@@ -163,6 +169,8 @@ export default function App() {
         onMapClick={handleMapClick} webcams={webcams} hazards={hazards}
         pinLocation={pinLocation} mapStyle={mapStyle} onMapStyle={setMapStyle}
         onResetGps={handleResetGps}
+        navSteps={navigating && routeResult ? routeResult.steps : undefined}
+        onStopNavigation={() => setNavigating(false)}
       />
     </>
   );
