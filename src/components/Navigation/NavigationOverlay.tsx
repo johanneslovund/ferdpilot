@@ -8,17 +8,24 @@ import './NavigationOverlay.css'
 function fmtClock(d: Date) {
   return d.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
 }
+function fmtDist(m: number) { return m >= 1000 ? `${(m/1000).toFixed(0)} km` : `${Math.round(m)} m` }
+function fmtTime(min: number) {
+  if (!min) return '--';
+  if (min < 60) return `${Math.round(min)} min`;
+  return `${Math.floor(min/60)}t ${Math.round(min%60)}m`;
+}
 
 interface Props {
   steps:           RouteStep[]
   navInfo:         NavInfo | null
   ferryAnalyses?:  FerryAnalysis[]
   routeStartTime?: Date
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  destination?:    string
   onStop:          () => void
 }
 
-export function NavigationOverlay({ steps, navInfo, ferryAnalyses, routeStartTime }: Props) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function NavigationOverlay({ steps, navInfo, ferryAnalyses, routeStartTime, destination, onStop: _s }: Props) {
   const [ferrySkips, setFerrySkips] = useState<number[]>([]);
   const ferryIdx = 0;
   const [now, setNow] = useState(new Date());
@@ -35,37 +42,50 @@ export function NavigationOverlay({ steps, navInfo, ferryAnalyses, routeStartTim
 
   return (
     <div className="nav-overlay">
-      {/* ── Block 1: Current instruction + next step ── */}
-      <div className="nav-instruction">
-        <div className="nav-instruction__arrow">
-          {step ? maneuverArrow(step.maneuverType, step.maneuverModifier) : '▶'}
+      {/* ── ONE combined block: metrics + instruction ── */}
+      <div className="nav-block">
+        {/* Top row: destination + metrics */}
+        <div className="nav-block__top">
+          <span className="nav-block__dest">{destination || 'Navigerer…'}</span>
+          <div className="nav-block__metrics">
+            <span className="nav-block__met-val">{navInfo?.remainDist ? fmtDist(navInfo.remainDist) : '--'}</span>
+            <span className="nav-block__met-sep">·</span>
+            <span className="nav-block__met-val">{fmtTime(navInfo?.remainMin ?? 0)}</span>
+            <span className="nav-block__met-sep">·</span>
+            <span className="nav-block__met-val">{navInfo?.eta ?? '--:--'}</span>
+          </div>
         </div>
-        <div className="nav-instruction__text">
-          <div className="nav-instruction__distance">
-            {fmtDistance(step?.distance ?? 0)}
+
+        {/* Divider */}
+        <div className="nav-block__divider" />
+
+        {/* Bottom row: turn arrow + instruction */}
+        <div className="nav-block__bottom">
+          <div className="nav-block__arrow">
+            {step ? maneuverArrow(step.maneuverType, step.maneuverModifier) : '▶'}
           </div>
-          <div className="nav-instruction__desc">
-            {step?.instruction ?? 'Beregner…'}
+          <div className="nav-block__text">
+            <div className="nav-block__dist">{fmtDistance(step?.distance ?? 0)}</div>
+            <div className="nav-block__instruction">{step?.instruction ?? 'Beregner…'}</div>
+            {nextStep && (
+              <div className="nav-block__next">
+                Deretter: {maneuverArrow(nextStep.maneuverType, nextStep.maneuverModifier)}{' '}{nextStep.instruction}
+              </div>
+            )}
           </div>
-          {nextStep && (
-            <div className="nav-instruction__next">
-              Deretter: {maneuverArrow(nextStep.maneuverType, nextStep.maneuverModifier)}{' '}
-              {nextStep.instruction}
-            </div>
+          {navInfo?.bearing !== null && navInfo?.bearing !== undefined && (
+            <svg className="nav-block__compass" width="26" height="26" viewBox="0 0 26 26">
+              <circle cx="13" cy="13" r="11" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
+              <polygon points="13,3 10.5,15 13,12 15.5,15" fill="#e53935"
+                transform={`rotate(${navInfo.bearing}, 13, 13)`}/>
+              <polygon points="13,23 10.5,11 13,14 15.5,11" fill="rgba(255,255,255,0.4)"
+                transform={`rotate(${navInfo.bearing}, 13, 13)`}/>
+            </svg>
           )}
         </div>
-        {navInfo?.bearing !== null && navInfo?.bearing !== undefined && (
-          <svg className="nav-compass-mini" width="28" height="28" viewBox="0 0 28 28">
-            <circle cx="14" cy="14" r="12" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
-            <polygon points="14,4 11,16 14,13 17,16" fill="#e53935"
-              transform={`rotate(${navInfo.bearing}, 14, 14)`}/>
-            <polygon points="14,24 11,12 14,15 17,12" fill="rgba(255,255,255,0.4)"
-              transform={`rotate(${navInfo.bearing}, 14, 14)`}/>
-          </svg>
-        )}
       </div>
 
-      {/* ── Block 2: Ferry progress line ── */}
+      {/* ── Ferry bar ── */}
       {ferryAnalyses && ferryAnalyses.length > 0 && (() => {
         const fa = ferryAnalyses[ferryIdx];
         const elapsed = routeStartTime
@@ -75,18 +95,15 @@ export function NavigationOverlay({ steps, navInfo, ferryAnalyses, routeStartTim
           const speedMs    = navInfo.remainDist / (navInfo.remainMin * 60);
           const ferryDistM = fa.ferry.driveDistanceToFerryKm * 1000;
           const drivenM    = Math.min(ferryDistM, elapsed / fa.ferry.driveTimeToFerryMin * ferryDistM);
-          const remFerryM  = Math.max(0, ferryDistM - drivenM);
-          remainingToFerryMin = speedMs > 0 ? remFerryM / speedMs / 60 : 0;
+          remainingToFerryMin = speedMs > 0 ? Math.max(0, ferryDistM - drivenM) / speedMs / 60 : 0;
         } else {
           remainingToFerryMin = Math.max(0, fa.ferry.driveTimeToFerryMin - elapsed);
         }
 
         const liveEta  = new Date(now.getTime() + remainingToFerryMin * 60 * 1000);
-        const upcoming = fa.departures.filter(
-          d => d.time >= new Date(liveEta.getTime() - 2 * 60 * 1000)
-        );
-        const skip   = ferrySkips[ferryIdx] ?? 0;
-        let target   = upcoming[skip] ?? upcoming[0];
+        const upcoming = fa.departures.filter(d => d.time >= new Date(liveEta.getTime() - 2 * 60 * 1000));
+        const skip     = ferrySkips[ferryIdx] ?? 0;
+        let target     = upcoming[skip] ?? upcoming[0];
         if (!target) return null;
 
         const minEarly    = (target.time.getTime() - liveEta.getTime()) / 60000;
@@ -104,8 +121,6 @@ export function NavigationOverlay({ steps, navInfo, ferryAnalyses, routeStartTim
             if (excess > 0 && req <= LIMIT + 40) excessSpeed = excess;
           }
         }
-
-        // Auto-skip if excess > 15 km/h above limit
         if (canMiss && (excessSpeed === null || excessSpeed > 15) && canSkipNext && skip === 0) {
           target = upcoming[1];
         }
@@ -120,33 +135,24 @@ export function NavigationOverlay({ steps, navInfo, ferryAnalyses, routeStartTim
 
         return (
           <div className="nav-ferry-line">
-            {/* Left: previous ferry button */}
-            <button
-              className={`nav-ferry-line__arrow${!canSkipPrev ? ' nav-ferry-line__arrow--hidden' : ''}`}
-              onClick={() => { if (canSkipPrev) { const n=[...ferrySkips]; n[ferryIdx]--; setFerrySkips(n); }}}
-              disabled={!canSkipPrev}
-            >‹</button>
-
-            {/* Centre: ferry info */}
+            <button className={`nav-ferry-line__arrow${!canSkipPrev?' nav-ferry-line__arrow--hidden':''}`}
+              onClick={() => { if(canSkipPrev){const n=[...ferrySkips];n[ferryIdx]--;setFerrySkips(n);}}}
+              disabled={!canSkipPrev}>‹</button>
             <div className="nav-ferry-line__centre">
               <div className="nav-ferry-line__labels">
                 <span>⛴ {fa.ferry.name} · {fmtClock(target.time)}</span>
-                <span style={{ color: fillColor, fontWeight: 700 }}>
-                  {margin >= 0 ? `+${margin} min` : canMiss && excessSpeed ? `+${excessSpeed} km/t over grensen` : `${margin} min`}
+                <span style={{color:fillColor,fontWeight:700}}>
+                  {margin>=0?`+${margin} min`:canMiss&&excessSpeed?`+${excessSpeed} km/t over grensen`:`${margin} min`}
                 </span>
               </div>
               <div className="nav-ferry-line__track">
-                <div className="nav-ferry-line__fill" style={{ width: `${fillPct}%`, background: fillColor }} />
-                <div className="nav-ferry-line__marker" style={{ left: '50%' }} />
+                <div className="nav-ferry-line__fill" style={{width:`${fillPct}%`,background:fillColor}}/>
+                <div className="nav-ferry-line__marker" style={{left:'50%'}}/>
               </div>
             </div>
-
-            {/* Right: next ferry button */}
-            <button
-              className={`nav-ferry-line__arrow${!canSkipNext ? ' nav-ferry-line__arrow--hidden' : ''}`}
-              onClick={() => { if (canSkipNext) { const n=[...ferrySkips]; n[ferryIdx]=(n[ferryIdx]??0)+1; setFerrySkips(n); }}}
-              disabled={!canSkipNext}
-            >›</button>
+            <button className={`nav-ferry-line__arrow${!canSkipNext?' nav-ferry-line__arrow--hidden':''}`}
+              onClick={() => { if(canSkipNext){const n=[...ferrySkips];n[ferryIdx]=(n[ferryIdx]??0)+1;setFerrySkips(n);}}}
+              disabled={!canSkipNext}>›</button>
           </div>
         );
       })()}

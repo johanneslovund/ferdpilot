@@ -104,6 +104,7 @@ interface MapViewProps {
   onToggleLock?:    () => void;
   navSteps?:         RouteStep[];
   navInfo?:          NavInfo | null;
+  navDestination?:   string;
   onNavInfo?:        (info: NavInfo) => void;
   onStopNavigation?: () => void;
   navFerries?:       import('../../services/ferryService').FerryAnalysis[];
@@ -117,7 +118,7 @@ export function MapView({
   onMapClick, onSelectAlt, webcams, hazards, pinLocation,
   mapStyle, onMapStyle, onResetGps,
   compassBearing, lockMode = 'north', onToggleLock,
-  navSteps, navInfo, onNavInfo, onStopNavigation, navFerries, routeStartTime,
+  navSteps, navInfo, onNavInfo, onStopNavigation, navFerries, routeStartTime, navDestination,
 }: MapViewProps) {
   const tiles = MAP_TILES[mapStyle];
 
@@ -176,6 +177,7 @@ export function MapView({
         <NavigationOverlay
           steps={navSteps} navInfo={navInfo ?? null} onStop={onStopNavigation}
           ferryAnalyses={navFerries} routeStartTime={routeStartTime}
+          destination={navDestination}
         />
       )}
 

@@ -228,6 +228,7 @@ export default function App() {
         onToggleLock={() => setLockMode(m => m === 'north' ? 'heading' : 'north')}
         onResetGps={handleResetGps}
         navSteps={navigating && routeResult ? routeResult.steps : undefined}
+        navDestination={navigating ? routeToName : undefined}
         navFerries={navigating ? ferryAnalyses : undefined}
         routeStartTime={routeStartTime}
         onStopNavigation={() => {

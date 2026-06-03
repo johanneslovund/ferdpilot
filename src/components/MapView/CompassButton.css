@@ -1,36 +1,36 @@
 .compass-btn {
   position: absolute;
-  /* Below the nav instruction block during navigation, otherwise below map style selector */
-  top: calc(var(--safe-top, 16px) + 62px + 44px);
+  top: calc(var(--safe-top, 16px) + 62px + 48px);
   right: 12px;
   z-index: 800;
-  width: 40px; height: 40px;
-  background: var(--glass-bg);
+  /* Exact same glass style as toggle buttons */
+  background: rgba(8,11,20,0.72);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 9px;
+  width: 40px; height: 40px;
   cursor: pointer;
   padding: 0;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: var(--glass-shadow);
-  transition: border-color 0.15s;
+  box-shadow: none;
+  color: rgba(255,255,255,0.5);
+  transition: border-color 0.15s, color 0.15s;
 }
-.compass-btn:hover { border-color: rgba(137,207,240,0.4); }
-
-/* During navigation: below the instruction block */
-.is-navigating .compass-btn {
-  top: calc(var(--safe-top, 16px) + 54px + 80px + 12px);
-}
+.compass-btn:hover { border-color: rgba(137,207,240,0.4); color: #89cff0; }
+.compass-btn--active { border-color: rgba(137,207,240,0.45); color: #89cff0; }
 
 .compass-btn__dot {
   position: absolute;
   bottom: 2px; right: 2px;
-  width: 7px; height: 7px;
+  width: 6px; height: 6px;
   border-radius: 50%;
   background: #89cff0;
   border: 1.5px solid rgba(8,11,20,0.8);
 }
+
+/* During navigation: hide since compass is inside instruction card */
+.is-navigating .compass-btn { display: none; }
 
 /* Hide map style selector during navigation */
 .is-navigating .map-style { display: none; }

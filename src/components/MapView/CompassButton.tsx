@@ -29,7 +29,11 @@ export function CompassButton({ bearing, lockMode, onToggle }: Props) {
   const deg = bearing ?? 0;
 
   return (
-    <button className="compass-btn" onClick={onToggle} title="Kompass">
+    <button
+      className={`compass-btn${lockMode === 'heading' ? ' compass-btn--active' : ''}`}
+      onClick={onToggle}
+      title={lockMode === 'north' ? 'Følg retning' : 'Lås nord'}
+    >
       <svg width="36" height="36" viewBox="0 0 36 36">
         {/* Ring */}
         <circle cx="18" cy="18" r="15" fill="rgba(8,11,20,0.72)" stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
