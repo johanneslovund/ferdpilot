@@ -39,7 +39,7 @@ async function getDepartures(stopId: string, after: Date): Promise<FerryDepartur
   const query = `{
     stopPlace(id: "${stopId}") {
       estimatedCalls(
-        numberOfDepartures: 10
+        numberOfDepartures: 14
         startTime: "${after.toISOString()}"
         timeRange: 28800
       ) {
@@ -85,8 +85,8 @@ export async function analyseFerries(
       departureTime.getTime() + ferry.driveTimeToFerryMin * 60 * 1000
     );
 
-    // Fetch departures for 8 hours starting from a bit before ETA
-    const fetchFrom = new Date(etaToFerry.getTime() - 30 * 60 * 1000);
+    // Fetch departures from 90 min before ETA (to show up to 2 earlier) through 8h after
+    const fetchFrom = new Date(etaToFerry.getTime() - 90 * 60 * 1000);
     const departures = await getDepartures(stopInfo.id, fetchFrom);
     if (!departures.length) continue;
 

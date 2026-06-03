@@ -1,11 +1,17 @@
+:root {
+  /* Height of the expanded search panel (2 fields + action row + padding + gaps) */
+  --search-panel-h: 158px;
+}
+
 .route-report {
   position: fixed;
-  top: 82px;
+  /* Always sits below the expanded search panel */
+  top: calc(var(--safe-top, 16px) + var(--search-panel-h) + 8px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 940;
   width: min(780px, calc(100vw - 24px));
-  max-height: calc(100vh - 100px);
+  max-height: calc(100vh - var(--safe-top, 16px) - var(--search-panel-h) - 20px - env(safe-area-inset-bottom));
   overflow-y: auto;
   background: rgba(8, 11, 20, 0.62);
   backdrop-filter: blur(24px);
@@ -158,7 +164,11 @@
 
 
 @media (max-width: 600px) {
-  .route-report { top: 0; border-radius: 0 0 14px 14px; }
+  .route-report {
+    top: calc(var(--safe-top, 16px) + var(--search-panel-h) + 6px);
+    border-radius: 12px;
+    max-height: calc(60vh - env(safe-area-inset-bottom));
+  }
   .route-report__body { grid-template-columns: 1fr; }
 }
 
@@ -234,4 +244,24 @@
   color: #89cff0;
   border: 1px solid rgba(137,207,240,0.3);
   flex-shrink: 0;
+}
+
+.route-report__ferry-divider {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(255,255,255,0.22);
+  padding: 4px 0 2px;
+}
+.route-report__ferry-divider--eta {
+  color: rgba(137,207,240,0.55);
+  border-top: 1px dashed rgba(137,207,240,0.2);
+  margin-top: 2px;
+  padding-top: 5px;
+}
+.route-report__ferry-dep--past {
+  opacity: 0.38;
+  text-decoration: line-through;
+  text-decoration-color: rgba(255,255,255,0.2);
 }

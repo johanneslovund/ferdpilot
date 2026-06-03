@@ -65,6 +65,11 @@ export function SearchPanel({ onRoute, onClear, onGpsRequest }: SearchPanelProps
     dest.setQuery(r.shortName);
     dest.setOpen(false);
     setDestCoords([r.lat, r.lon]);
+    // Default start = Min Posisjon — set label but defer GPS fetch until route is calculated
+    if (!fromCoords && !fromGps) {
+      setFromGps(true);
+      from.setQuery('Min posisjon');
+    }
   }
 
   function selectFrom(r: GeoResult) {
@@ -168,24 +173,32 @@ export function SearchPanel({ onRoute, onClear, onGpsRequest }: SearchPanelProps
         )}
       </div>
 
-      {/* Start row */}
+      {/* Start row — when in GPS mode show label; tap × to switch to text */}
       <div className="search-field" ref={fromRef}>
         <span className="search-field__label">Fra</span>
         <span className="search-field__sep" />
-        <input
-          className="search-field__input"
-          placeholder="Startsted…"
-          value={from.query}
-          onChange={(e) => { setFromCoords(null); setFromGps(false); from.setQuery(e.target.value); }}
-          onFocus={() => from.results.length > 0 && from.setOpen(true)}
-          autoComplete="off" spellCheck={false}
-          style={fromGps ? { color: '#89cff0' } : undefined}
-        />
-        {from.query
+        {fromGps ? (
+          /* GPS mode — show label, × lets user type instead */
+          <span className="search-field__input" style={{ color: '#89cff0', cursor: 'default' }}>
+            {gpsLoading ? 'Henter posisjon…' : 'Min posisjon'}
+          </span>
+        ) : (
+          <input
+            className="search-field__input"
+            placeholder="Startsted…"
+            value={from.query}
+            onChange={(e) => { setFromCoords(null); from.setQuery(e.target.value); }}
+            onFocus={() => from.results.length > 0 && from.setOpen(true)}
+            autoComplete="off" spellCheck={false}
+          />
+        )}
+        {fromGps
           ? <button className="search-field__clear" onClick={() => { setFromGps(false); setFromCoords(null); from.clear(); }}>×</button>
-          : <button className="search-field__gps" onClick={handleGps} disabled={gpsLoading}>
-              {gpsLoading ? '…' : 'Min Posisjon'}
-            </button>
+          : from.query
+            ? <button className="search-field__clear" onClick={() => { setFromCoords(null); from.clear(); }}>×</button>
+            : <button className="search-field__gps" onClick={handleGps} disabled={gpsLoading}>
+                {gpsLoading ? '…' : 'GPS'}
+              </button>
         }
         {from.open && (
           <div className="search-dropdown">

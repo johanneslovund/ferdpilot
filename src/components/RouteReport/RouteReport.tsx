@@ -133,24 +133,51 @@ export function RouteReport({ analysis, route, routeAnalysisText, ferryAnalyses,
               )}
               {isClose && !willMiss && fa.minutesEarly !== null && fa.minutesEarly < 10 && (
                 <div className="route-report__ferry-ok">
-                  ✓ Du rekker ferjen kl. {fa.nextFerry ? fmtTime(fa.nextFerry.time) : '?'}
-                  {' '}med ca. {Math.round(fa.minutesEarly)} min å spare.
+                  ✓ Du rekker ferjen kl. {fa.nextFerry ? fmtTime(fa.nextFerry.time) : '?'} —{' '}
+                  du ankommer {Math.round(fa.minutesEarly)} {Math.round(fa.minutesEarly) === 1 ? 'minutt' : 'minutter'} før avgang.
                 </div>
               )}
 
-              {/* Departure list */}
-              <div className="route-report__ferry-times">
-                {fa.departures.slice(0, 5).map((dep, j) => {
-                  const isNext = fa.nextFerry && dep.time.getTime() === fa.nextFerry.time.getTime();
-                  return (
-                    <div key={j} className={`route-report__ferry-dep${isNext ? ' route-report__ferry-dep--next' : ''}`}>
-                      <span className="route-report__ferry-time">{fmtTime(dep.time)}</span>
-                      <span className="route-report__ferry-dest">→ {dep.destination}</span>
-                      {isNext && <span className="route-report__ferry-badge">{willMiss ? 'Neste' : 'Rekker'}</span>}
-                    </div>
-                  );
-                })}
-              </div>
+              {/* Departure list: max 2 before ETA, then upcoming */}
+              {(() => {
+                const earlier  = fa.departures.filter(d => d.time < fa.etaToFerry).slice(-2);
+                const upcoming = fa.departures.filter(d => d.time >= fa.etaToFerry).slice(0, 4);
+                const toShow   = [...earlier, ...upcoming];
+                return (
+                  <div className="route-report__ferry-times">
+                    {earlier.length > 0 && (
+                      <div className="route-report__ferry-divider">Avganger</div>
+                    )}
+                    {toShow.map((dep, j) => {
+                      const isPast = dep.time < fa.etaToFerry;
+                      const isNext = fa.nextFerry && dep.time.getTime() === fa.nextFerry.time.getTime();
+                      const isFirst = earlier.length > 0 && j === earlier.length;
+                      return (
+                        <>
+                          {isFirst && (
+                            <div key={`divider-${j}`} className="route-report__ferry-divider route-report__ferry-divider--eta">
+                              ↓ ETA {fmtTime(fa.etaToFerry)}
+                            </div>
+                          )}
+                          <div key={j} className={[
+                            'route-report__ferry-dep',
+                            isNext ? 'route-report__ferry-dep--next' : '',
+                            isPast ? 'route-report__ferry-dep--past' : '',
+                          ].filter(Boolean).join(' ')}>
+                            <span className="route-report__ferry-time">{fmtTime(dep.time)}</span>
+                            <span className="route-report__ferry-dest">→ {dep.destination}</span>
+                            {isNext && (
+                              <span className="route-report__ferry-badge">
+                                {willMiss ? 'Neste' : 'Rekker'}
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           );
         })}
