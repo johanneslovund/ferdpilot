@@ -129,7 +129,8 @@ export function MapView({
         {...{ rotate: true, touchRotate: true } as any}
         style={{ height: '100%', width: '100%' }} zoomControl>
         <MapClickHandler onMapClick={onMapClick} />
-        <UserLocationLayer />
+        {/* UserLocationLayer hidden during navigation — NavMapController owns the smooth marker */}
+        {!navSteps?.length && <UserLocationLayer />}
         {/* Compass — inside MapContainer to access useMap() */}
         {onToggleLock && (
           <CompassButton bearing={compassBearing ?? null} lockMode={lockMode} onToggle={onToggleLock} />
